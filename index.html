@@ -29,18 +29,37 @@
         --warn-bg: #412402;    --warn-text: #fac775;
       }
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 1rem; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh; padding: 1rem;
+    }
     #root { max-width: 480px; margin: 0 auto; padding-top: 0.5rem; }
-    .btn { background: transparent; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 14px; cursor: pointer; color: var(--text); font-family: inherit; transition: background 0.12s; -webkit-tap-highlight-color: transparent; }
+    .btn {
+      background: transparent; border: 0.5px solid var(--border2);
+      border-radius: var(--radius-sm); padding: 8px 16px; font-size: 14px;
+      cursor: pointer; color: var(--text); font-family: inherit;
+      transition: background 0.12s; -webkit-tap-highlight-color: transparent;
+    }
     .btn:hover, .btn:active { background: var(--bg2); }
     .btn:active { transform: scale(0.97); }
     .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
     .btn-primary:hover, .btn-primary:active { opacity: 0.85; background: var(--text); }
     .btn-sm { padding: 5px 12px; font-size: 13px; }
-    .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; }
-    input[type="text"] { width: 100%; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 15px; color: var(--text); font-family: inherit; outline: none; }
+    .card {
+      background: var(--bg); border: 0.5px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.1rem;
+    }
+    input[type="text"] {
+      width: 100%; background: var(--bg2); border: 0.5px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 12px; font-size: 15px;
+      color: var(--text); font-family: inherit; outline: none;
+    }
     input[type="text"]:focus { border-color: var(--border2); }
-    .pill { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-size: 12px; font-weight: 500; padding: 3px 10px; white-space: nowrap; }
+    .pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 999px; font-size: 12px; font-weight: 500;
+      padding: 3px 10px; white-space: nowrap;
+    }
     .pill-info    { background: var(--info-bg);    color: var(--info-text); }
     .pill-success { background: var(--success-bg); color: var(--success-text); }
     .pill-danger  { background: var(--danger-bg);  color: var(--danger-text); }
@@ -54,71 +73,63 @@
 <body>
 <div id="root"></div>
 <script>
-const { useState, useEffect, useRef } = React;
+const { useState } = React;
 const ROUNDS = [1,2,3,4,5,6,7,6,5,4,3,2,1];
-const SAVE_KEY = 'ascenseur_v1';
-
-function saveGame(state) {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch(e) {}
-}
-function loadGame() {
-  try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch(e) { return null; }
-}
-function clearGame() {
-  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
-}
 
 function getScore(bid, tricks) {
   return bid === tricks ? 1 + bid : -(Math.abs(bid - tricks));
 }
 
 function Avatar({ name, size = 36 }) {
-  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const COLORS = [
-    { bg: 'var(--info-bg)', color: 'var(--info-text)' },
+    { bg: 'var(--info-bg)',    color: 'var(--info-text)' },
     { bg: 'var(--success-bg)', color: 'var(--success-text)' },
-    { bg: 'var(--warn-bg)', color: 'var(--warn-text)' },
-    { bg: 'var(--danger-bg)', color: 'var(--danger-text)' },
+    { bg: 'var(--warn-bg)',    color: 'var(--warn-text)' },
+    { bg: 'var(--danger-bg)',  color: 'var(--danger-text)' },
   ];
   const c = COLORS[(name.charCodeAt(0) || 0) % COLORS.length];
   return React.createElement('div', {
-    style: { width: size, height: size, borderRadius: '50%', background: c.bg, color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(size * 0.36), fontWeight: 500, flexShrink: 0, userSelect: 'none' }
+    style: {
+      width: size, height: size, borderRadius: '50%',
+      background: c.bg, color: c.color,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: Math.round(size * 0.36), fontWeight: 500,
+      flexShrink: 0, userSelect: 'none'
+    }
   }, initials || '?');
 }
 
-function SetupScreen({ onStart, hasSave, onResume }) {
+function SetupScreen({ onStart }) {
   const [names, setNames] = useState(['', '']);
-  const addPlayer = () => setNames(n => [...n, '']);
-  const removePlayer = i => setNames(n => n.filter((_, j) => j !== i));
-  const updateName = (i, v) => setNames(n => n.map((x, j) => j === i ? v : x));
   const valid = names.length >= 2 && names.every(n => n.trim().length > 0);
   return React.createElement('div', null,
     React.createElement('p', { style: { fontSize: 24, fontWeight: 600, marginBottom: 4 } }, "L'Ascenseur"),
-    React.createElement('p', { style: { fontSize: 14, color: 'var(--text2)', marginBottom: '1.5rem' } }, '13 manches · +1+pli si réussi · −écart si raté'),
-    hasSave && React.createElement('div', { style: { marginBottom: '1.5rem' } },
-      React.createElement('div', { className: 'banner-warn', style: { display: 'flex', alignItems: 'center', gap: 12 } },
-        React.createElement('span', { style: { flex: 1 } }, 'Une partie est en cours.'),
-        React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: onResume }, 'Reprendre →')
-      )
-    ),
+    React.createElement('p', { style: { fontSize: 14, color: 'var(--text2)', marginBottom: '1.5rem' } },
+      '13 manches · +1+pli si réussi · −écart si raté'),
     React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1rem' } },
       names.map((name, i) =>
         React.createElement('div', { key: i, style: { display: 'flex', gap: 8, alignItems: 'center' } },
           React.createElement(Avatar, { name: name || '?', size: 34 }),
-          React.createElement('input', { type: 'text', placeholder: `Joueur ${i+1}`, value: name, onChange: e => updateName(i, e.target.value) }),
+          React.createElement('input', {
+            type: 'text', placeholder: `Joueur ${i + 1}`, value: name,
+            onChange: e => setNames(n => n.map((x, j) => j === i ? e.target.value : x))
+          }),
           names.length > 2 && React.createElement('button', {
-            className: 'btn btn-sm', onClick: () => removePlayer(i),
-            style: { color: 'var(--danger-text)', flexShrink: 0 }
+            className: 'btn btn-sm',
+            style: { color: 'var(--danger-text)', flexShrink: 0 },
+            onClick: () => setNames(n => n.filter((_, j) => j !== i))
           }, '−')
         )
       )
     ),
     React.createElement('div', { style: { display: 'flex', gap: 8 } },
-      React.createElement('button', { className: 'btn btn-sm', onClick: addPlayer }, '+ Joueur'),
+      React.createElement('button', { className: 'btn btn-sm', onClick: () => setNames(n => [...n, '']) }, '+ Joueur'),
       React.createElement('button', {
-        className: 'btn btn-primary', style: { marginLeft: 'auto', opacity: valid ? 1 : 0.4 },
+        className: 'btn btn-primary',
+        style: { marginLeft: 'auto', opacity: valid ? 1 : 0.4 },
         onClick: () => valid && onStart(names.map(n => n.trim()))
-      }, hasSave ? 'Nouvelle partie' : 'Commencer →')
+      }, 'Commencer →')
     )
   );
 }
@@ -129,21 +140,27 @@ function ScoreTable({ players, currentRound }) {
     React.createElement('table', { style: { width: '100%', fontSize: 13 } },
       React.createElement('thead', null,
         React.createElement('tr', null,
-          React.createElement('th', { style: { textAlign: 'left', color: 'var(--text2)', fontWeight: 400, paddingBottom: 8, fontSize: 12, whiteSpace: 'nowrap' } }, 'Manche'),
+          React.createElement('th', {
+            style: { textAlign: 'left', color: 'var(--text2)', fontWeight: 400, paddingBottom: 8, fontSize: 12, whiteSpace: 'nowrap' }
+          }, 'Manche'),
           ...players.map((p, i) =>
-            React.createElement('th', { key: i, style: { textAlign: 'center', fontWeight: 500, paddingBottom: 8, paddingLeft: 6 } }, p.name.split(' ')[0])
+            React.createElement('th', { key: i, style: { textAlign: 'center', fontWeight: 500, paddingBottom: 8, paddingLeft: 6 } },
+              p.name.split(' ')[0])
           )
         )
       ),
       React.createElement('tbody', null,
         ROUNDS.slice(0, currentRound).map((cards, ri) =>
           React.createElement('tr', { key: ri, style: { borderTop: '0.5px solid var(--border)' } },
-            React.createElement('td', { style: { color: 'var(--text2)', padding: '5px 0', fontSize: 12, whiteSpace: 'nowrap' } }, `M${ri+1} (${cards})`),
+            React.createElement('td', { style: { color: 'var(--text2)', padding: '5px 0', fontSize: 12, whiteSpace: 'nowrap' } },
+              `M${ri + 1} (${cards})`),
             ...players.map((p, pi) => {
               const s = p.scores[ri];
               return React.createElement('td', { key: pi, style: { textAlign: 'center', padding: '5px 6px' } },
                 s !== undefined
-                  ? React.createElement('span', { style: { color: s > 0 ? 'var(--success-text)' : s < 0 ? 'var(--danger-text)' : 'var(--text2)', fontWeight: 500 } }, (s > 0 ? '+' : '') + s)
+                  ? React.createElement('span', {
+                      style: { color: s > 0 ? 'var(--success-text)' : s < 0 ? 'var(--danger-text)' : 'var(--text2)', fontWeight: 500 }
+                    }, (s > 0 ? '+' : '') + s)
                   : React.createElement('span', { style: { color: 'var(--text3)' } }, '—')
               );
             })
@@ -172,16 +189,23 @@ function BiddingPhase({ players, round, roundIndex, onDone, onBack, canGoBack })
 
   const handleBack = () => {
     const lastSet = players.reduce((acc, _, i) => bids[i] !== undefined ? i : acc, -1);
-    if (lastSet >= 0) setBids(b => { const nb = { ...b }; delete nb[lastSet]; return nb; });
-    else if (canGoBack) onBack();
+    if (lastSet >= 0) {
+      setBids(b => { const nb = { ...b }; delete nb[lastSet]; return nb; });
+    } else if (canGoBack) {
+      onBack();
+    }
   };
+
+  const showBack = Object.keys(bids).length > 0 || canGoBack;
 
   return React.createElement('div', null,
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1rem' } },
       React.createElement('span', { className: 'pill pill-info' }, `Manche ${roundIndex + 1} / ${ROUNDS.length}`),
       React.createElement('span', { style: { fontSize: 14, color: 'var(--text2)' } }, `${round} carte${round > 1 ? 's' : ''}`),
       React.createElement('span', { style: { marginLeft: 'auto', fontSize: 12, color: 'var(--text3)' } }, 'PARIS'),
-      (Object.keys(bids).length > 0 || canGoBack) && React.createElement('button', { className: 'btn btn-sm', onClick: handleBack, style: { fontSize: 12, marginLeft: 8 } }, '← Retour')
+      showBack && React.createElement('button', {
+        className: 'btn btn-sm', onClick: handleBack, style: { fontSize: 12, marginLeft: 8 }
+      }, '← Retour')
     ),
     done
       ? React.createElement('div', null,
@@ -190,4 +214,227 @@ function BiddingPhase({ players, round, roundIndex, onDone, onBack, canGoBack })
             players.map((p, i) =>
               React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 10 } },
                 React.createElement(Avatar, { name: p.name, size: 32 }),
-                React.createElement
+                React.createElement('span', { style: { flex: 1, fontSize: 14 } }, p.name),
+                React.createElement('span', { className: 'pill pill-neutral' }, `parie ${bids[i]}`)
+              )
+            )
+          ),
+          React.createElement('p', { style: { fontSize: 12, color: 'var(--text2)', marginBottom: '1rem' } },
+            `Total parié : ${sumSoFar} sur ${round} pli${round > 1 ? 's' : ''} disponibles`
+          ),
+          React.createElement('button', {
+            className: 'btn btn-primary', style: { width: '100%' },
+            onClick: () => onDone(bids)
+          }, 'Jouer la manche →')
+        )
+      : React.createElement('div', null,
+          React.createElement('div', { className: 'card', style: { marginBottom: '1rem' } },
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.85rem' } },
+              React.createElement(Avatar, { name: players[biddingPlayer].name }),
+              React.createElement('div', null,
+                React.createElement('p', { style: { fontWeight: 500, fontSize: 15 } }, players[biddingPlayer].name),
+                React.createElement('p', { style: { fontSize: 13, color: 'var(--text2)' } },
+                  isLast && !forbiddenInvalid
+                    ? `Interdit : ${forbidden} pli${forbidden > 1 ? 's' : ''}`
+                    : 'Combien de plis vas-tu remporter ?'
+                )
+              )
+            ),
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8 } },
+              options.map(v =>
+                React.createElement('button', {
+                  key: v, className: 'btn',
+                  disabled: v === forbidden && !forbiddenInvalid,
+                  onClick: () => setBids(b => ({ ...b, [biddingPlayer]: v })),
+                  style: {
+                    minWidth: 46, fontWeight: 500, fontSize: 15,
+                    opacity: (v === forbidden && !forbiddenInvalid) ? 0.2 : 1,
+                    cursor: (v === forbidden && !forbiddenInvalid) ? 'not-allowed' : 'pointer'
+                  }
+                }, v)
+              )
+            )
+          ),
+          biddingPlayer > 0 && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
+            players.slice(0, biddingPlayer).map((p, i) =>
+              React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                React.createElement(Avatar, { name: p.name, size: 28 }),
+                React.createElement('span', { style: { fontSize: 13, color: 'var(--text2)', flex: 1 } }, p.name),
+                React.createElement('span', { className: 'pill pill-neutral' }, `${bids[i]} pli${bids[i] > 1 ? 's' : ''}`)
+              )
+            )
+          )
+        )
+  );
+}
+
+function ResultsPhase({ players, round, roundIndex, bids, onDone, onBack }) {
+  const [tricks, setTricks] = useState({});
+  const options = Array.from({ length: round + 1 }, (_, i) => i);
+  const nextPlayer = players.findIndex((_, i) => tricks[i] === undefined);
+  const allDone = nextPlayer === -1;
+  const trickSum = Object.values(tricks).reduce((a, b) => a + b, 0);
+  const sumOk = allDone && trickSum === round;
+  const sumError = allDone && trickSum !== round;
+
+  const handleBack = () => {
+    const lastSet = players.reduce((acc, _, i) => tricks[i] !== undefined ? i : acc, -1);
+    if (lastSet >= 0) {
+      setTricks(t => { const nt = { ...t }; delete nt[lastSet]; return nt; });
+    } else {
+      onBack();
+    }
+  };
+
+  return React.createElement('div', null,
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1rem' } },
+      React.createElement('span', { className: 'pill pill-warn' }, `Manche ${roundIndex + 1} / ${ROUNDS.length}`),
+      React.createElement('span', { style: { fontSize: 14, color: 'var(--text2)' } }, `${round} carte${round > 1 ? 's' : ''}`),
+      React.createElement('span', { style: { marginLeft: 'auto', fontSize: 12, color: 'var(--text3)' } }, 'RÉSULTATS'),
+      React.createElement('button', {
+        className: 'btn btn-sm', onClick: handleBack, style: { fontSize: 12, marginLeft: 8 }
+      }, '← Retour')
+    ),
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1rem' } },
+      players.map((p, i) => {
+        const trick = tricks[i];
+        const bid = bids[i];
+        const placed = trick !== undefined;
+        const isNext = i === nextPlayer;
+        return React.createElement('div', { key: i, className: 'card',
+          style: { border: isNext ? '1px solid var(--border2)' : undefined }
+        },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: (placed || !isNext) ? 0 : '0.85rem' } },
+            React.createElement(Avatar, { name: p.name, size: 32 }),
+            React.createElement('div', { style: { flex: 1 } },
+              React.createElement('p', { style: { fontWeight: 500, fontSize: 14 } }, p.name),
+              React.createElement('p', { style: { fontSize: 12, color: 'var(--text2)' } }, `pari : ${bid}`)
+            ),
+            placed && React.createElement('span', {
+              className: trick === bid ? 'pill pill-success' : 'pill pill-danger'
+            }, trick === bid ? `+${1 + bid}` : `−${Math.abs(bid - trick)}`)
+          ),
+          isNext && React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8 } },
+            options.map(v =>
+              React.createElement('button', {
+                key: v, className: 'btn',
+                onClick: () => setTricks(t => ({ ...t, [i]: v })),
+                style: { minWidth: 46, fontWeight: 500, fontSize: 15 }
+              }, v)
+            )
+          )
+        );
+      })
+    ),
+    allDone && React.createElement('div', { style: { marginBottom: '1rem' } },
+      sumError
+        ? React.createElement('p', { className: 'banner-warn' },
+            `⚠ Total : ${trickSum} pli${trickSum > 1 ? 's' : ''} saisis, ${round} attendus. Corrige avant de continuer.`)
+        : React.createElement('p', { className: 'banner-success' },
+            `✓ Total correct : ${trickSum} / ${round} pli${round > 1 ? 's' : ''}`)
+    ),
+    allDone && React.createElement('button', {
+      className: 'btn btn-primary',
+      style: { width: '100%', opacity: sumOk ? 1 : 0.4, cursor: sumOk ? 'pointer' : 'not-allowed' },
+      onClick: () => sumOk && onDone(tricks)
+    }, roundIndex < ROUNDS.length - 1 ? 'Manche suivante →' : 'Voir le classement final')
+  );
+}
+
+function EndScreen({ players, onRestart }) {
+  const totals = players.map(p => ({ name: p.name, total: p.scores.reduce((a, b) => a + b, 0) }));
+  totals.sort((a, b) => b.total - a.total);
+  return React.createElement('div', null,
+    React.createElement('p', { style: { fontSize: 22, fontWeight: 600, marginBottom: 4 } }, 'Classement final'),
+    React.createElement('p', { style: { fontSize: 14, color: 'var(--text2)', marginBottom: '1.5rem' } }, '13 manches terminées'),
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1.5rem' } },
+      totals.map((p, i) =>
+        React.createElement('div', { key: p.name, className: 'card', style: { display: 'flex', alignItems: 'center', gap: 12 } },
+          React.createElement('span', { style: { fontSize: 18, fontWeight: 600, color: 'var(--text3)', width: 24, textAlign: 'center' } }, i + 1),
+          React.createElement(Avatar, { name: p.name }),
+          React.createElement('span', { style: { flex: 1, fontWeight: 500, fontSize: 15 } }, p.name),
+          React.createElement('span', { style: { fontWeight: 700, fontSize: 20, color: i === 0 ? 'var(--success-text)' : 'var(--text)' } }, p.total)
+        )
+      )
+    ),
+    React.createElement('button', { className: 'btn btn-primary', style: { width: '100%' }, onClick: onRestart }, 'Nouvelle partie')
+  );
+}
+
+function App() {
+  const [phase, setPhase] = useState('setup');
+  const [players, setPlayers] = useState([]);
+  const [roundIndex, setRoundIndex] = useState(0);
+  const [currentBids, setCurrentBids] = useState({});
+  const [subPhase, setSubPhase] = useState('bid');
+  const [showScores, setShowScores] = useState(false);
+  const [history, setHistory] = useState([]);
+
+  const start = (names) => {
+    setPlayers(names.map(n => ({ name: n, scores: [], bids: [], tricks: [] })));
+    setRoundIndex(0); setSubPhase('bid'); setShowScores(false); setHistory([]); setPhase('game');
+  };
+
+  const snap = () => ({
+    players: JSON.parse(JSON.stringify(players)),
+    roundIndex,
+    currentBids: { ...currentBids },
+    subPhase
+  });
+
+  const onBidsDone = (bids) => {
+    setHistory(h => [...h, snap()]);
+    setCurrentBids(bids);
+    setSubPhase('results');
+  };
+
+  const onResultsDone = (tricks) => {
+    setHistory(h => [...h, snap()]);
+    const newPlayers = players.map((p, i) => {
+      const score = getScore(currentBids[i], tricks[i]);
+      return { ...p, bids: [...p.bids, currentBids[i]], tricks: [...p.tricks, tricks[i]], scores: [...p.scores, score] };
+    });
+    setPlayers(newPlayers);
+    if (roundIndex < ROUNDS.length - 1) { setRoundIndex(r => r + 1); setSubPhase('bid'); }
+    else setPhase('end');
+  };
+
+  const onBack = () => {
+    if (history.length === 0) return;
+    const prev = history[history.length - 1];
+    setHistory(h => h.slice(0, -1));
+    setPlayers(prev.players);
+    setRoundIndex(prev.roundIndex);
+    setCurrentBids(prev.currentBids);
+    setSubPhase(prev.subPhase);
+    setShowScores(false);
+  };
+
+  if (phase === 'setup') return React.createElement(SetupScreen, { onStart: start });
+  if (phase === 'end') return React.createElement(EndScreen, { players, onRestart: () => setPhase('setup') });
+
+  const round = ROUNDS[roundIndex];
+  const progress = Math.round(((roundIndex + (subPhase === 'results' ? 0.5 : 0)) / ROUNDS.length) * 100);
+  const scoresRound = roundIndex + (subPhase === 'results' ? 1 : 0);
+
+  return React.createElement('div', null,
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', marginBottom: '0.4rem' } },
+      React.createElement('p', { style: { fontSize: 16, fontWeight: 600, flex: 1 } }, "L'Ascenseur"),
+      React.createElement('button', { className: 'btn btn-sm', onClick: () => setShowScores(s => !s) },
+        showScores ? '← Jeu' : 'Scores')
+    ),
+    React.createElement('div', { style: { height: 3, background: 'var(--bg3)', borderRadius: 99, marginBottom: '1.25rem', overflow: 'hidden' } },
+      React.createElement('div', { style: { height: '100%', width: progress + '%', background: 'var(--text)', borderRadius: 99, transition: 'width 0.4s ease' } })
+    ),
+    showScores
+      ? React.createElement(ScoreTable, { players, currentRound: scoresRound })
+      : subPhase === 'bid'
+        ? React.createElement(BiddingPhase, { key: 'bid-' + roundIndex, players, round, roundIndex, onDone: onBidsDone, onBack, canGoBack: history.length > 0 })
+        : React.createElement(ResultsPhase, { key: 'res-' + roundIndex, players, round, roundIndex, bids: currentBids, onDone: onResultsDone, onBack })
+  );
+}
+
+ReactDOM.render(React.createElement(App), document.getElementById('root'));
+</script>
+</body>
+</html>

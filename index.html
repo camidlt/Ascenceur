@@ -80,6 +80,18 @@ function getScore(bid, tricks) {
   return bid === tricks ? 1 + bid : -(Math.abs(bid - tricks));
 }
 
+// Returns players array rotated so roundIndex % n is first
+function getRotatedPlayers(players, roundIndex) {
+  const n = players.length;
+  const offset = roundIndex % n;
+  return players.map((_, i) => players[(i + offset) % n]);
+}
+
+// Given a rotated-order index, return the original player index
+function rotatedToOriginal(rotatedIndex, roundIndex, totalPlayers) {
+  return (rotatedIndex + roundIndex) % totalPlayers;
+}
+
 function Avatar({ name, size = 36 }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const COLORS = [
@@ -343,12 +355,12 @@ function ResultsPhase({ players, round, roundIndex, bids, onDone, onBack }) {
 
 function EndScreen({ players, onRestart }) {
   const totals = players.map(p => ({ name: p.name, total: p.scores.reduce((a, b) => a + b, 0) }));
-  totals.sort((a, b) => b.total - a.total);
+  const sorted = [...totals].sort((a, b) => b.total - a.total);
   return React.createElement('div', null,
     React.createElement('p', { style: { fontSize: 22, fontWeight: 600, marginBottom: 4 } }, 'Classement final'),
     React.createElement('p', { style: { fontSize: 14, color: 'var(--text2)', marginBottom: '1.5rem' } }, '13 manches terminées'),
     React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1.5rem' } },
-      totals.map((p, i) =>
+      sorted.map((p, i) =>
         React.createElement('div', { key: p.name, className: 'card', style: { display: 'flex', alignItems: 'center', gap: 12 } },
           React.createElement('span', { style: { fontSize: 18, fontWeight: 600, color: 'var(--text3)', width: 24, textAlign: 'center' } }, i + 1),
           React.createElement(Avatar, { name: p.name }),
@@ -356,6 +368,10 @@ function EndScreen({ players, onRestart }) {
           React.createElement('span', { style: { fontWeight: 700, fontSize: 20, color: i === 0 ? 'var(--success-text)' : 'var(--text)' } }, p.total)
         )
       )
+    ),
+    React.createElement('p', { style: { fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' } }, 'Détail des points'),
+    React.createElement('div', { style: { marginBottom: '1.5rem' } },
+      React.createElement(ScoreTable, { players, currentRound: ROUNDS.length })
     ),
     React.createElement('button', { className: 'btn btn-primary', style: { width: '100%' }, onClick: onRestart }, 'Nouvelle partie')
   );
@@ -382,17 +398,31 @@ function App() {
     subPhase
   });
 
-  const onBidsDone = (bids) => {
+  // bids keyed by rotated index → map back to original player indices
+  const onBidsDone = (rotatedBids) => {
     setHistory(h => [...h, snap()]);
-    setCurrentBids(bids);
+    // Convert rotated-index bids to original-index bids
+    const n = players.length;
+    const originalBids = {};
+    Object.entries(rotatedBids).forEach(([ri, val]) => {
+      const origIdx = rotatedToOriginal(parseInt(ri), roundIndex, n);
+      originalBids[origIdx] = val;
+    });
+    setCurrentBids(originalBids);
     setSubPhase('results');
   };
 
-  const onResultsDone = (tricks) => {
+  // tricks keyed by rotated index → map back to original player indices
+  const onResultsDone = (rotatedTricks) => {
     setHistory(h => [...h, snap()]);
-    const newPlayers = players.map((p, i) => {
-      const score = getScore(currentBids[i], tricks[i]);
-      return { ...p, bids: [...p.bids, currentBids[i]], tricks: [...p.tricks, tricks[i]], scores: [...p.scores, score] };
+    const n = players.length;
+    const newPlayers = players.map((p, origIdx) => {
+      // Find which rotated index corresponds to this original player
+      const rotIdx = ((origIdx - roundIndex) % n + n) % n;
+      const trick = rotatedTricks[rotIdx];
+      const bid = currentBids[origIdx];
+      const score = getScore(bid, trick);
+      return { ...p, bids: [...p.bids, bid], tricks: [...p.tricks, trick], scores: [...p.scores, score] };
     });
     setPlayers(newPlayers);
     if (roundIndex < ROUNDS.length - 1) { setRoundIndex(r => r + 1); setSubPhase('bid'); }
@@ -417,6 +447,19 @@ function App() {
   const progress = Math.round(((roundIndex + (subPhase === 'results' ? 0.5 : 0)) / ROUNDS.length) * 100);
   const scoresRound = roundIndex + (subPhase === 'results' ? 1 : 0);
 
+  // Rotate player order: player at roundIndex % n goes first
+  const rotatedPlayers = getRotatedPlayers(players, roundIndex);
+
+  // For results phase, bids are stored by original index; re-map to rotated order for display
+  const rotatedBidsForDisplay = {};
+  if (subPhase === 'results') {
+    const n = players.length;
+    rotatedPlayers.forEach((p, ri) => {
+      const origIdx = players.findIndex(pl => pl.name === p.name);
+      rotatedBidsForDisplay[ri] = currentBids[origIdx];
+    });
+  }
+
   return React.createElement('div', null,
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', marginBottom: '0.4rem' } },
       React.createElement('p', { style: { fontSize: 16, fontWeight: 600, flex: 1 } }, "L'Ascenseur"),
@@ -429,8 +472,8 @@ function App() {
     showScores
       ? React.createElement(ScoreTable, { players, currentRound: scoresRound })
       : subPhase === 'bid'
-        ? React.createElement(BiddingPhase, { key: 'bid-' + roundIndex, players, round, roundIndex, onDone: onBidsDone, onBack, canGoBack: history.length > 0 })
-        : React.createElement(ResultsPhase, { key: 'res-' + roundIndex, players, round, roundIndex, bids: currentBids, onDone: onResultsDone, onBack })
+        ? React.createElement(BiddingPhase, { key: 'bid-' + roundIndex, players: rotatedPlayers, round, roundIndex, onDone: onBidsDone, onBack, canGoBack: history.length > 0 })
+        : React.createElement(ResultsPhase, { key: 'res-' + roundIndex, players: rotatedPlayers, round, roundIndex, bids: rotatedBidsForDisplay, onDone: onResultsDone, onBack })
   );
 }
 
